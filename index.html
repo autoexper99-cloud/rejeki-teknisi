@@ -12,7 +12,6 @@
         background: #f1f5f9;
       }
 
-      /* HEADER */
       .header {
         background: linear-gradient(135deg, #2563eb, #1e40af);
         color: white;
@@ -26,7 +25,6 @@
         font-weight: bold;
       }
 
-      /* CARD */
       .card {
         background: white;
         margin: 15px;
@@ -35,7 +33,6 @@
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
       }
 
-      /* SUMMARY */
       .summary {
         display: flex;
         justify-content: space-between;
@@ -45,7 +42,6 @@
         text-align: center;
       }
 
-      /* FORM */
       .form input,
       .form select,
       .form button {
@@ -63,7 +59,6 @@
         font-weight: bold;
       }
 
-      /* LIST */
       .list-item {
         display: flex;
         justify-content: space-between;
@@ -79,7 +74,6 @@
         color: red;
       }
 
-      /* BOTTOM NAV */
       .nav {
         position: fixed;
         bottom: 0;
@@ -90,22 +84,15 @@
         padding: 10px;
         border-top: 1px solid #ddd;
       }
-
-      .nav div {
-        text-align: center;
-        font-size: 12px;
-      }
     </style>
   </head>
 
   <body>
-    <!-- HEADER -->
     <div class="header">
       <div>Saldo</div>
       <div class="balance" id="saldo">Rp 0</div>
     </div>
 
-    <!-- SUMMARY -->
     <div class="card summary">
       <div>
         <div>Pemasukan</div>
@@ -117,7 +104,6 @@
       </div>
     </div>
 
-    <!-- FORM -->
     <div class="card form">
       <h3>Tambah Transaksi</h3>
       <input type="text" id="ket" placeholder="Keterangan" />
@@ -129,21 +115,42 @@
       <button onclick="tambah()">Tambah</button>
     </div>
 
-    <!-- LIST -->
     <div class="card">
       <h3>Transaksi</h3>
-      <div id="list"></div>
+      <div id="list">Loading...</div>
     </div>
 
-    <!-- NAV -->
     <div class="nav">
       <div>🏠<br />Home</div>
-      <div>📊<br />Stat</div>
-      <div>⚙️<br />Setting</div>
     </div>
 
-    <script>
-      let data = JSON.parse(localStorage.getItem("keuangan")) || [];
+    <!-- FIREBASE -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        addDoc,
+        getDocs,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyDqjEEMwdxNqqnTdTVOeQN5kFA-zXGkgco",
+        authDomain: "keuangan-app-a4183.firebaseapp.com",
+        projectId: "keuangan-app-a4183",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      let data = [];
+
+      async function loadData() {
+        const snapshot = await getDocs(collection(db, "transaksi"));
+        data = [];
+        snapshot.forEach((doc) => data.push(doc.data()));
+        render();
+      }
 
       function render() {
         let saldo = 0,
@@ -178,11 +185,9 @@
         document.getElementById("keluar").innerText =
           "Rp " + keluar.toLocaleString();
         document.getElementById("list").innerHTML = html;
-
-        localStorage.setItem("keuangan", JSON.stringify(data));
       }
 
-      function tambah() {
+      async function tambah() {
         const ket = document.getElementById("ket").value;
         const jumlah = parseInt(document.getElementById("jumlah").value);
         const tipe = document.getElementById("tipe").value;
@@ -192,17 +197,22 @@
           return;
         }
 
-        const tanggal = new Date().toLocaleDateString();
-
-        data.unshift({ ket, jumlah, tipe, tanggal });
-
-        render();
+        await addDoc(collection(db, "transaksi"), {
+          ket,
+          jumlah,
+          tipe,
+          tanggal: new Date().toLocaleDateString(),
+        });
 
         document.getElementById("ket").value = "";
         document.getElementById("jumlah").value = "";
+
+        loadData();
       }
 
-      render();
+      window.tambah = tambah;
+
+      loadData();
     </script>
   </body>
 </html>
