@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finance App</title>
+
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", sans-serif;
+        background: #f1f5f9;
+      }
+
+      /* HEADER */
+      .header {
+        background: linear-gradient(135deg, #2563eb, #1e40af);
+        color: white;
+        padding: 20px;
+        border-bottom-left-radius: 20px;
+        border-bottom-right-radius: 20px;
+      }
+
+      .balance {
+        font-size: 24px;
+        font-weight: bold;
+      }
+
+      /* CARD */
+      .card {
+        background: white;
+        margin: 15px;
+        padding: 15px;
+        border-radius: 15px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      /* SUMMARY */
+      .summary {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .summary div {
+        text-align: center;
+      }
+
+      /* FORM */
+      .form input,
+      .form select,
+      .form button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 10px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+      }
+
+      .form button {
+        background: #2563eb;
+        color: white;
+        border: none;
+        font-weight: bold;
+      }
+
+      /* LIST */
+      .list-item {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .income {
+        color: green;
+      }
+      .expense {
+        color: red;
+      }
+
+      /* BOTTOM NAV */
+      .nav {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        background: white;
+        display: flex;
+        justify-content: space-around;
+        padding: 10px;
+        border-top: 1px solid #ddd;
+      }
+
+      .nav div {
+        text-align: center;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- HEADER -->
+    <div class="header">
+      <div>Saldo</div>
+      <div class="balance" id="saldo">Rp 0</div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="card summary">
+      <div>
+        <div>Pemasukan</div>
+        <strong id="masuk">Rp 0</strong>
+      </div>
+      <div>
+        <div>Pengeluaran</div>
+        <strong id="keluar">Rp 0</strong>
+      </div>
+    </div>
+
+    <!-- FORM -->
+    <div class="card form">
+      <h3>Tambah Transaksi</h3>
+      <input type="text" id="ket" placeholder="Keterangan" />
+      <input type="number" id="jumlah" placeholder="Jumlah" />
+      <select id="tipe">
+        <option value="masuk">Pemasukan</option>
+        <option value="keluar">Pengeluaran</option>
+      </select>
+      <button onclick="tambah()">Tambah</button>
+    </div>
+
+    <!-- LIST -->
+    <div class="card">
+      <h3>Transaksi</h3>
+      <div id="list"></div>
+    </div>
+
+    <!-- NAV -->
+    <div class="nav">
+      <div>🏠<br />Home</div>
+      <div>📊<br />Stat</div>
+      <div>⚙️<br />Setting</div>
+    </div>
+
+    <script>
+      let data = JSON.parse(localStorage.getItem("keuangan")) || [];
+
+      function render() {
+        let saldo = 0,
+          masuk = 0,
+          keluar = 0;
+        let html = "";
+
+        data.forEach((d) => {
+          let nilai = d.tipe === "keluar" ? -d.jumlah : d.jumlah;
+          saldo += nilai;
+
+          if (nilai > 0) masuk += nilai;
+          else keluar += nilai;
+
+          html += `
+      <div class="list-item">
+        <div>
+          <strong>${d.ket}</strong><br>
+          <small>${d.tanggal}</small>
+        </div>
+        <div class="${d.tipe === "masuk" ? "income" : "expense"}">
+          Rp ${nilai.toLocaleString()}
+        </div>
+      </div>
+    `;
+        });
+
+        document.getElementById("saldo").innerText =
+          "Rp " + saldo.toLocaleString();
+        document.getElementById("masuk").innerText =
+          "Rp " + masuk.toLocaleString();
+        document.getElementById("keluar").innerText =
+          "Rp " + keluar.toLocaleString();
+        document.getElementById("list").innerHTML = html;
+
+        localStorage.setItem("keuangan", JSON.stringify(data));
+      }
+
+      function tambah() {
+        const ket = document.getElementById("ket").value;
+        const jumlah = parseInt(document.getElementById("jumlah").value);
+        const tipe = document.getElementById("tipe").value;
+
+        if (!ket || !jumlah) {
+          alert("Isi data dulu!");
+          return;
+        }
+
+        const tanggal = new Date().toLocaleDateString();
+
+        data.unshift({ ket, jumlah, tipe, tanggal });
+
+        render();
+
+        document.getElementById("ket").value = "";
+        document.getElementById("jumlah").value = "";
+      }
+
+      render();
+    </script>
+  </body>
+</html>
