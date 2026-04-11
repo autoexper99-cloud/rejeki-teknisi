@@ -13,7 +13,7 @@
       }
 
       .header {
-        background: #2563eb;
+        background: linear-gradient(135deg, #eb5842, #a62511);
         color: white;
         padding: 20px;
         text-align: center;
@@ -41,12 +41,30 @@
         color: red;
       }
 
+      button {
+        width: 100%;
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        border: none;
+        background: #eb5842;
+        color: white;
+      }
+
+      input {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+      }
+
       a {
         display: block;
-        margin: 15px;
+        margin: 10px;
         text-align: center;
         text-decoration: none;
-        color: #2563eb;
+        color: #eb5842;
       }
     </style>
   </head>
@@ -56,8 +74,22 @@
       <h2>Histori Transaksi</h2>
     </div>
 
-    <a href="index.html">⬅ Kembali</a>
+    <button onclick="location.href = 'index.html'">⬅ Kembali</button>
+    <!-- FILTER -->
+    <div class="card">
+      <h3>Filter</h3>
 
+      <label>Harian</label>
+      <input type="date" id="filterTanggal" />
+
+      <label>Bulanan</label>
+      <input type="month" id="filterBulan" />
+
+      <button onclick="applyFilter()">Filter</button>
+      <button onclick="resetFilter()">Reset</button>
+    </div>
+
+    <!-- LIST -->
     <div class="card">
       <div id="list">Loading...</div>
     </div>
@@ -79,18 +111,36 @@
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
 
+      let semuaData = [];
+      let data = [];
+
+      // 🔄 LOAD DATA
       async function loadData() {
         const snapshot = await getDocs(collection(db, "transaksi"));
+
+        semuaData = [];
+        snapshot.forEach((doc) => semuaData.push(doc.data()));
+
+        data = semuaData;
+        render();
+      }
+
+      // 🎨 RENDER
+      function render() {
         let html = "";
 
-        snapshot.forEach((doc) => {
-          const d = doc.data();
+        if (data.length === 0) {
+          html = "<p>Tidak ada data</p>";
+        }
+
+        data.forEach((d) => {
+          const tgl = new Date(d.tanggal);
 
           html += `
       <div class="item">
         <div>
           <strong>${d.ket}</strong><br>
-          <small>${d.tanggal}</small>
+          <small>${tgl.toLocaleDateString("id-ID")}</small>
         </div>
         <div class="${d.tipe === "masuk" ? "income" : "expense"}">
           ${d.jumlah.toLocaleString("id-ID", {
@@ -104,6 +154,46 @@
 
         document.getElementById("list").innerHTML = html;
       }
+
+      // 🔍 FILTER (VERSI FINAL FIX)
+      function applyFilter() {
+        const tanggal = document.getElementById("filterTanggal").value;
+        const bulan = document.getElementById("filterBulan").value;
+
+        data = semuaData.filter((d) => {
+          const tgl = new Date(d.tanggal);
+
+          let matchTanggal = true;
+          let matchBulan = true;
+
+          if (tanggal) {
+            const inputDate = new Date(tanggal);
+            matchTanggal = tgl.toDateString() === inputDate.toDateString();
+          }
+
+          if (bulan) {
+            const [year, month] = bulan.split("-");
+            matchBulan =
+              tgl.getFullYear() == year && tgl.getMonth() + 1 == month;
+          }
+
+          return matchTanggal && matchBulan;
+        });
+
+        render();
+      }
+
+      // 🔄 RESET
+      function resetFilter() {
+        document.getElementById("filterTanggal").value = "";
+        document.getElementById("filterBulan").value = "";
+
+        data = semuaData;
+        render();
+      }
+
+      window.applyFilter = applyFilter;
+      window.resetFilter = resetFilter;
 
       loadData();
     </script>
