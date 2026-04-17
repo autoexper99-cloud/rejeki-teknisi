@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Histori Rejeki</title>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
       body {
         margin: 0;
@@ -22,7 +24,7 @@
       .card {
         background: white;
         margin: 20px;
-        padding: 30px;
+        padding: 20px;
         border-radius: 15px;
       }
 
@@ -58,14 +60,6 @@
         border-radius: 10px;
         border: 1px solid #ddd;
       }
-
-      a {
-        display: block;
-        margin: 10px;
-        text-align: center;
-        text-decoration: none;
-        color: #eb5842;
-      }
     </style>
   </head>
 
@@ -88,10 +82,26 @@
       <button onclick="resetFilter()">Reset</button>
     </div>
 
+    <!-- TOTAL -->
+    <div class="card">
+      <h3>Ringkasan</h3>
+      <p>Total Saldo: <strong id="totalSaldo">Rp 0</strong></p>
+      <p>Total Pemasukan: <strong id="totalMasuk">Rp 0</strong></p>
+      <p>Total Pengeluaran: <strong id="totalKeluar">Rp 0</strong></p>
+    </div>
+
+    <!-- CHART -->
+    <div class="card">
+      <h3>Grafik Keuangan</h3>
+      <canvas id="chart"></canvas>
+    </div>
+
     <!-- LIST -->
     <div class="card">
       <div id="list">Loading...</div>
     </div>
+
+    <button onclick="location.href = 'index.html'">⬅ Kembali</button>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -112,6 +122,19 @@
 
       let semuaData = [];
       let data = [];
+      let chart;
+
+      // 🔥 PARSE TANGGAL (SUPPORT LAMA & BARU)
+      function parseTanggal(tanggal) {
+        if (!tanggal) return new Date();
+
+        if (tanggal.includes("/")) {
+          const [day, month, year] = tanggal.split("/");
+          return new Date(`${year}-${month}-${day}`);
+        }
+
+        return new Date(tanggal);
+      }
 
       // 🔄 LOAD DATA
       async function loadData() {
@@ -127,13 +150,22 @@
       // 🎨 RENDER
       function render() {
         let html = "";
+        let saldo = 0;
+        let masuk = 0;
+        let keluar = 0;
 
         if (data.length === 0) {
           html = "<p>Tidak ada data</p>";
         }
 
         data.forEach((d) => {
-          const tgl = new Date(d.tanggal);
+          const tgl = parseTanggal(d.tanggal);
+          const nilai = d.tipe === "keluar" ? -d.jumlah : d.jumlah;
+
+          saldo += nilai;
+
+          if (nilai > 0) masuk += nilai;
+          else keluar += Math.abs(nilai);
 
           html += `
       <div class="item">
@@ -152,15 +184,56 @@
         });
 
         document.getElementById("list").innerHTML = html;
+
+        // 💰 TOTAL
+        document.getElementById("totalSaldo").innerText = saldo.toLocaleString(
+          "id-ID",
+          { style: "currency", currency: "IDR" },
+        );
+
+        document.getElementById("totalMasuk").innerText = masuk.toLocaleString(
+          "id-ID",
+          { style: "currency", currency: "IDR" },
+        );
+
+        document.getElementById("totalKeluar").innerText =
+          keluar.toLocaleString("id-ID", {
+            style: "currency",
+            currency: "IDR",
+          });
+
+        // 📊 CHART
+        renderChart(masuk, keluar);
       }
 
-      // 🔍 FILTER (VERSI FINAL FIX)
+      // 📊 CHART
+      function renderChart(masuk, keluar) {
+        const ctx = document.getElementById("chart");
+
+        if (chart) {
+          chart.destroy();
+        }
+
+        chart = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: ["Pemasukan", "Pengeluaran"],
+            datasets: [
+              {
+                data: [masuk, keluar],
+              },
+            ],
+          },
+        });
+      }
+
+      // 🔍 FILTER
       function applyFilter() {
         const tanggal = document.getElementById("filterTanggal").value;
         const bulan = document.getElementById("filterBulan").value;
 
         data = semuaData.filter((d) => {
-          const tgl = new Date(d.tanggal);
+          const tgl = parseTanggal(d.tanggal);
 
           let matchTanggal = true;
           let matchBulan = true;
@@ -196,6 +269,5 @@
 
       loadData();
     </script>
-    <button onclick="location.href = 'index.html'">⬅ Kembali</button>
   </body>
 </html>
