@@ -1,244 +1,540 @@
 <!doctype html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>REJEKI TEKNISI</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Rejeki</title>
 
-    <style>
-      body {
-        margin: 0;
-        font-family: "Segoe UI", sans-serif;
-        background: #f1f5f9;
-      }
+  <!-- CHART -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-      .header {
-        background: linear-gradient(135deg, #eb5842, #a62511);
-        color: white;
-        padding: 20px;
-        border-radius: 0 0 20px 20px;
-      }
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-      .balance {
-        font-size: 24px;
-        font-weight: bold;
-      }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f1f5f9;
+      padding-bottom: 100px;
+    }
 
-      .card {
-        background: white;
-        margin: 20px;
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-      }
+    .header {
+      background: linear-gradient(135deg, #eb5842, #a62511);
+      color: white;
+      padding: 25px 20px;
+      border-radius: 0 0 25px 25px;
+    }
 
-      .summary {
-        display: flex;
-        justify-content: space-between;
-      }
+    .header small {
+      opacity: 0.8;
+    }
 
-      .form input,
-      .form select,
-      .form button {
-        width: 100%;
-        padding: 12px;
-        margin-top: 10px;
-        border-radius: 10px;
-        border: 1px solid #ddd;
-      }
+    .balance {
+      font-size: 32px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
 
-      .form button {
-        background: #eb5842;
-        color: white;
-        border: none;
-        font-weight: bold;
-      }
+    .summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 20px;
+    }
 
-      .list-item {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 10px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #eee;
-      }
+    .summary-card {
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
 
-      .income {
-        color: green;
-      }
-      .expense {
-        color: red;
-      }
+    .summary-card small {
+      color: gray;
+    }
 
-      .nav {
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        background: white;
-        display: flex;
-        justify-content: center;
-        padding: 10px;
-        border-top: 1px solid #ddd;
-      }
-    </style>
-  </head>
+    .summary-card h3 {
+      margin-top: 10px;
+      margin-bottom: 0;
+    }
 
-  <body>
-    <div class="header">
-      <div>Rejeki Terkumpul</div>
-      <div class="balance" id="saldo">Rp 0</div>
+    .income {
+      color: green;
+    }
+
+    .expense {
+      color: red;
+    }
+
+    .card {
+      background: white;
+      margin: 20px;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      font-size: 15px;
+    }
+
+    button {
+      background: #eb5842;
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .transaksi {
+      margin-top: 15px;
+    }
+
+    .item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .item:last-child {
+      border-bottom: none;
+    }
+
+    .item-left strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .item-left small {
+      color: gray;
+      font-size: 12px;
+    }
+
+    .nominal {
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    canvas {
+      margin-top: 10px;
+    }
+
+    .empty {
+      text-align: center;
+      color: gray;
+      padding: 20px;
+    }
+
+    .nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: white;
+      display: flex;
+      justify-content: center;
+      padding: 15px;
+      border-top: 1px solid #ddd;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <small>Total Saldo</small>
+    <div class="balance" id="saldo">
+      Rp 0
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary">
+
+    <div class="summary-card">
+      <small>Pemasukan</small>
+      <h3 class="income" id="masuk">
+        Rp 0
+      </h3>
     </div>
 
-    <div class="card summary">
-      <div>
-        <div>Pemasukan</div>
-        <strong id="masuk">Rp 0</strong>
-      </div>
-      <div>
-        <div>Pengeluaran</div>
-        <strong id="keluar">Rp 0</strong>
-      </div>
+    <div class="summary-card">
+      <small>Pengeluaran</small>
+      <h3 class="expense" id="keluar">
+        Rp 0
+      </h3>
     </div>
 
-    <div class="card form">
-      <h3>Tambah Transaksi</h3>
-      <input type="text" id="ket" placeholder="Keterangan" />
-      <input type="text" id="jumlah" placeholder="Jumlah" />
-      <select id="tipe">
-        <option value="masuk">Pemasukan</option>
-        <option value="keluar">Pengeluaran</option>
-      </select>
-      <button onclick="tambah()">Tambah</button>
+  </div>
+
+  <!-- FORM -->
+  <div class="card">
+    <h3>Tambah Transaksi</h3>
+
+    <input
+      type="text"
+      id="ket"
+      placeholder="Keterangan"
+    />
+
+    <input
+      type="text"
+      id="jumlah"
+      placeholder="Jumlah"
+    />
+
+    <select id="tipe">
+      <option value="masuk">Pemasukan</option>
+      <option value="keluar">Pengeluaran</option>
+    </select>
+
+    <button onclick="tambah()">
+      Tambah Transaksi
+    </button>
+  </div>
+
+  <!-- CHART -->
+  <div class="card">
+    <h3>Statistik Keuangan</h3>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <!-- HISTORI -->
+  <div class="card">
+    <h3>Histori Transaksi</h3>
+
+    <div class="transaksi" id="list">
+      Loading...
     </div>
+  </div>
 
-    <div class="card">
-      <h3>Transaksi</h3>
-      <div id="list">Loading...</div>
-    </div>
+  <!-- NAV -->
+  <div class="nav">
+    Dashboard Rejeki
+  </div>
 
-    <div class="nav">
-      <div onclick="location.href = 'index.html'">🏠 Home</div>
-      <div onclick="location.href = 'history.html'">📄 Histori</div>
-    </div>
+  <script type="module">
 
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-      import {
-        getFirestore,
-        collection,
-        addDoc,
-        getDocs,
-      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyDqjEEMwdxNqqnTdTVOeQN5kFA-zXGkgco",
-        authDomain: "keuangan-app-a4183.firebaseapp.com",
-        projectId: "keuangan-app-a4183",
-      };
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      query,
+      orderBy,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
+    // FIREBASE CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqjEEMwdxNqqnTdTVOeQN5kFA-zXGkgco",
+      authDomain: "keuangan-app-a4183.firebaseapp.com",
+      projectId: "keuangan-app-a4183",
+    };
 
-      let data = [];
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-      // 🔥 FORMAT INPUT OTOMATIS
-      const inputJumlah = document.getElementById("jumlah");
+    let data = [];
+    let chart;
 
-      inputJumlah.addEventListener("input", function () {
-        let value = this.value.replace(/\D/g, "");
+    // FORMAT INPUT RUPIAH
+    const inputJumlah = document.getElementById("jumlah");
 
-        if (!value) {
-          this.value = "";
-          return;
+    inputJumlah.addEventListener("input", function () {
+
+      let value = this.value.replace(/\D/g, "");
+
+      if (!value) {
+        this.value = "";
+        return;
+      }
+
+      this.value =
+        Number(value).toLocaleString("id-ID");
+
+    });
+
+    // LOAD DATA
+    async function loadData() {
+
+      try {
+
+        const q = query(
+          collection(db, "transaksi"),
+          orderBy("createdAt", "desc")
+        );
+
+        const snapshot = await getDocs(q);
+
+        data = [];
+
+        snapshot.forEach((doc) => {
+          data.push(doc.data());
+        });
+
+        render();
+
+      } catch (err) {
+
+        console.error(err);
+
+        document.getElementById("list").innerHTML =
+          `<div class="empty">Gagal memuat data</div>`;
+
+      }
+
+    }
+
+    // RENDER
+    function render() {
+
+      let saldo = 0;
+      let masuk = 0;
+      let keluar = 0;
+
+      let html = "";
+
+      if (data.length === 0) {
+
+        html =
+          `<div class="empty">Belum ada transaksi</div>`;
+
+      }
+
+      data.forEach((d) => {
+
+        const nilai =
+          d.tipe === "keluar"
+            ? -d.jumlah
+            : d.jumlah;
+
+        saldo += nilai;
+
+        if (nilai > 0) {
+          masuk += nilai;
+        } else {
+          keluar += Math.abs(nilai);
         }
 
-        this.value = Number(value).toLocaleString("id-ID");
+        let tanggal = "-";
+
+        if (d.createdAt?.seconds) {
+
+          tanggal = new Date(
+            d.createdAt.seconds * 1000
+          ).toLocaleString("id-ID");
+
+        }
+
+        html += `
+
+          <div class="item">
+
+            <div class="item-left">
+
+              <strong>
+                ${d.ket}
+              </strong>
+
+              <small>
+                ${tanggal}
+              </small>
+
+            </div>
+
+            <div class="
+              nominal
+              ${d.tipe === "masuk"
+                ? "income"
+                : "expense"}
+            ">
+
+              ${d.tipe === "masuk"
+                ? "+"
+                : "-"}
+
+              ${d.jumlah.toLocaleString(
+                "id-ID",
+                {
+                  style: "currency",
+                  currency: "IDR"
+                }
+              )}
+
+            </div>
+
+          </div>
+
+        `;
+
       });
 
-      // 🔄 LOAD DATA
-      async function loadData() {
-        const snapshot = await getDocs(collection(db, "transaksi"));
-        data = [];
-        snapshot.forEach((doc) => data.push(doc.data()));
-        render();
-        console.log(snapshot.size);
-      }
-
-      // 🎨 RENDER
-      function render() {
-        let saldo = 0,
-          masuk = 0,
-          keluar = 0;
-        let html = "";
-
-        data.forEach((d) => {
-          let nilai = d.tipe === "keluar" ? -d.jumlah : d.jumlah;
-          saldo += nilai;
-
-          if (nilai > 0) masuk += nilai;
-          else keluar += nilai;
-
-          html += `
-      <div class="list-item">
-        <div>
-          <strong>${d.ket}</strong><br>
-          <small>${d.tanggal}</small>
-        </div>
-        <div class="${d.tipe === "masuk" ? "income" : "expense"}">
-          ${nilai.toLocaleString("id-ID", {
+      // TOTAL
+      document.getElementById("saldo").innerText =
+        saldo.toLocaleString(
+          "id-ID",
+          {
             style: "currency",
-            currency: "IDR",
-          })}
-        </div>
-      </div>
-    `;
-        });
-
-        document.getElementById("saldo").innerText = saldo.toLocaleString(
-          "id-ID",
-          { style: "currency", currency: "IDR" },
+            currency: "IDR"
+          }
         );
 
-        document.getElementById("masuk").innerText = masuk.toLocaleString(
+      document.getElementById("masuk").innerText =
+        masuk.toLocaleString(
           "id-ID",
-          { style: "currency", currency: "IDR" },
+          {
+            style: "currency",
+            currency: "IDR"
+          }
         );
 
-        document.getElementById("keluar").innerText = keluar.toLocaleString(
+      document.getElementById("keluar").innerText =
+        keluar.toLocaleString(
           "id-ID",
-          { style: "currency", currency: "IDR" },
+          {
+            style: "currency",
+            currency: "IDR"
+          }
         );
 
-        document.getElementById("list").innerHTML = html;
+      // LIST
+      document.getElementById("list").innerHTML =
+        html;
+
+      // CHART
+      renderChart(masuk, keluar);
+
+    }
+
+    // CHART
+    function renderChart(masuk, keluar) {
+
+      const ctx =
+        document.getElementById("chart");
+
+      if (chart) {
+        chart.destroy();
       }
 
-      // ➕ TAMBAH DATA
-      async function tambah() {
-        const ket = document.getElementById("ket").value;
-        const raw = document.getElementById("jumlah").value.replace(/\./g, "");
-        const jumlah = parseInt(raw);
-        const tipe = document.getElementById("tipe").value;
+      chart = new Chart(ctx, {
 
-        if (!ket || !jumlah) {
-          alert("Isi data dulu!");
-          return;
+        type: "doughnut",
+
+        data: {
+
+          labels: [
+            "Pemasukan",
+            "Pengeluaran"
+          ],
+
+          datasets: [{
+
+            data: [
+              masuk,
+              keluar
+            ]
+
+          }]
+
         }
 
-        await addDoc(collection(db, "transaksi"), {
-          ket,
-          jumlah,
-          tipe,
-          tanggal: new Date().toLocaleDateString(),
-        });
+      });
 
+    }
+
+    // TAMBAH TRANSAKSI
+    async function tambah() {
+
+      try {
+
+        const ket =
+          document.getElementById("ket").value;
+
+        const raw =
+          document
+            .getElementById("jumlah")
+            .value
+            .replace(/\./g, "");
+
+        const jumlah = parseInt(raw);
+
+        const tipe =
+          document.getElementById("tipe").value;
+
+        if (!ket || !jumlah) {
+
+          alert("Isi data dulu!");
+
+          return;
+
+        }
+
+        await addDoc(
+          collection(db, "transaksi"),
+          {
+
+            ket,
+            jumlah,
+            tipe,
+
+            tanggal:
+              new Date().toISOString(),
+
+            createdAt:
+              serverTimestamp()
+
+          }
+        );
+
+        // RESET FORM
         document.getElementById("ket").value = "";
         document.getElementById("jumlah").value = "";
 
+        // RELOAD
         loadData();
+
+      } catch (err) {
+
+        console.error(err);
+
+        alert(
+          "Gagal menambahkan transaksi"
+        );
+
       }
 
-      window.tambah = tambah;
+    }
 
-      loadData();
-    </script>
-  </body>
+    window.tambah = tambah;
+
+    // START
+    loadData();
+
+  </script>
+
+</body>
 </html>
