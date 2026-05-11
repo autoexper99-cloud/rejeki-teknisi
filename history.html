@@ -1,273 +1,334 @@
 <!doctype html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Histori Rejeki</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Histori Rejeki</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
 
-    <style>
-      body {
-        margin: 0;
-        font-family: "Segoe UI", sans-serif;
-        background: #f1f5f9;
-      }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f1f5f9;
+      padding-bottom: 40px;
+    }
 
-      .header {
-        background: linear-gradient(135deg, #eb5842, #a62511);
-        color: white;
-        padding: 20px;
-        text-align: center;
-      }
+    .header {
+      background: linear-gradient(135deg, #eb5842, #a62511);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
 
-      .card {
-        background: white;
-        margin: 20px;
-        padding: 20px;
-        border-radius: 15px;
-      }
+    .card {
+      background: white;
+      margin: 20px;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
 
-      .item {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 10px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 10px;
-      }
+    input,
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
 
-      .income {
-        color: green;
-      }
-      .expense {
-        color: red;
-      }
+    button {
+      background: #eb5842;
+      color: white;
+      border: none;
+      font-weight: bold;
+    }
 
-      button {
-        width: 100%;
-        margin-top: 10px;
-        padding: 10px;
-        border-radius: 10px;
-        border: none;
-        background: #eb5842;
-        color: white;
-      }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid #eee;
+    }
 
-      input {
-        width: 100%;
-        padding: 10px;
-        margin-top: 10px;
-        border-radius: 10px;
-        border: 1px solid #ddd;
-      }
-    </style>
-  </head>
+    .income {
+      color: green;
+      font-weight: bold;
+    }
 
-  <body>
-    <div class="header">
-      <h2>Histori Rejeki</h2>
+    .expense {
+      color: red;
+      font-weight: bold;
+    }
+
+    .back {
+      display: block;
+      margin: 20px;
+      text-align: center;
+      text-decoration: none;
+      color: #eb5842;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <h2>Histori Transaksi</h2>
+  </div>
+
+  <a
+    href="index.html"
+    class="back"
+  >
+    ← Kembali
+  </a>
+
+  <!-- FILTER -->
+  <div class="card">
+
+    <h3>Filter</h3>
+
+    <label>Harian</label>
+    <input
+      type="date"
+      id="filterTanggal"
+    />
+
+    <label>Bulanan</label>
+    <input
+      type="month"
+      id="filterBulan"
+    />
+
+    <button onclick="applyFilter()">
+      Filter
+    </button>
+
+    <button onclick="resetFilter()">
+      Reset
+    </button>
+
+  </div>
+
+  <!-- LIST -->
+  <div class="card">
+
+    <div id="list">
+      Loading...
     </div>
 
-    <!-- FILTER -->
-    <div class="card">
-      <h3>Filter</h3>
+  </div>
 
-      <label>Harian</label>
-      <input type="date" id="filterTanggal" />
+  <script type="module">
 
-      <label>Bulanan</label>
-      <input type="month" id="filterBulan" />
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
-      <button onclick="applyFilter()">Filter</button>
-      <button onclick="resetFilter()">Reset</button>
-    </div>
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      query,
+      orderBy
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <!-- TOTAL -->
-    <div class="card">
-      <h3>Ringkasan</h3>
-      <p>Total Saldo: <strong id="totalSaldo">Rp 0</strong></p>
-      <p>Total Pemasukan: <strong id="totalMasuk">Rp 0</strong></p>
-      <p>Total Pengeluaran: <strong id="totalKeluar">Rp 0</strong></p>
-    </div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqjEEMwdxNqqnTdTVOeQN5kFA-zXGkgco",
+      authDomain: "keuangan-app-a4183.firebaseapp.com",
+      projectId: "keuangan-app-a4183",
+    };
 
-    <!-- CHART -->
-    <div class="card">
-      <h3>Grafik Keuangan</h3>
-      <canvas id="chart"></canvas>
-    </div>
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    <!-- LIST -->
-    <div class="card">
-      <div id="list">Loading...</div>
-    </div>
+    let semuaData = [];
+    let data = [];
 
-    <button onclick="location.href = 'index.html'">⬅ Kembali</button>
+    // LOAD
+    async function loadData() {
 
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-      import {
-        getFirestore,
-        collection,
-        getDocs,
-      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+      const q = query(
+        collection(db, "transaksi"),
+        orderBy("createdAt", "desc")
+      );
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyDqjEEMwdxNqqnTdTVOeQN5kFA-zXGkgco",
-        authDomain: "keuangan-app-a4183.firebaseapp.com",
-        projectId: "keuangan-app-a4183",
-      };
+      const snapshot = await getDocs(q);
 
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
+      semuaData = [];
 
-      let semuaData = [];
-      let data = [];
-      let chart;
+      snapshot.forEach((doc) => {
+        semuaData.push(doc.data());
+      });
 
-      // 🔥 PARSE TANGGAL (SUPPORT LAMA & BARU)
-      function parseTanggal(tanggal) {
-        if (!tanggal) return new Date();
+      data = semuaData;
 
-        if (tanggal.includes("/")) {
-          const [day, month, year] = tanggal.split("/");
-          return new Date(`${year}-${month}-${day}`);
+      render();
+
+    }
+
+    // RENDER
+    function render() {
+
+      let html = "";
+
+      if (data.length === 0) {
+
+        html =
+          "<p>Tidak ada data</p>";
+
+      }
+
+      data.forEach((d) => {
+
+        let waktu = "-";
+
+        if (d.createdAt?.seconds) {
+
+          waktu =
+            new Date(
+              d.createdAt.seconds * 1000
+            ).toLocaleString("id-ID");
+
         }
 
-        return new Date(tanggal);
-      }
+        html += `
 
-      // 🔄 LOAD DATA
-      async function loadData() {
-        const snapshot = await getDocs(collection(db, "transaksi"));
+          <div class="item">
 
-        semuaData = [];
-        snapshot.forEach((doc) => semuaData.push(doc.data()));
+            <div>
+              <strong>${d.ket}</strong><br>
+              <small>${waktu}</small>
+            </div>
 
-        data = semuaData;
-        render();
-      }
+            <div class="
+              ${d.tipe === "masuk"
+                ? "income"
+                : "expense"}
+            ">
 
-      // 🎨 RENDER
-      function render() {
-        let html = "";
-        let saldo = 0;
-        let masuk = 0;
-        let keluar = 0;
+              ${d.tipe === "masuk"
+                ? "+"
+                : "-"}
 
-        if (data.length === 0) {
-          html = "<p>Tidak ada data</p>";
+              ${d.jumlah.toLocaleString(
+                "id-ID",
+                {
+                  style: "currency",
+                  currency: "IDR"
+                }
+              )}
+
+            </div>
+
+          </div>
+
+        `;
+
+      });
+
+      document.getElementById(
+        "list"
+      ).innerHTML = html;
+
+    }
+
+    // FILTER
+    function applyFilter() {
+
+      const tanggal =
+        document.getElementById(
+          "filterTanggal"
+        ).value;
+
+      const bulan =
+        document.getElementById(
+          "filterBulan"
+        ).value;
+
+      data = semuaData.filter((d) => {
+
+        if (!d.createdAt?.seconds)
+          return false;
+
+        const tgl =
+          new Date(
+            d.createdAt.seconds * 1000
+          );
+
+        let cocokTanggal = true;
+        let cocokBulan = true;
+
+        // FILTER HARIAN
+        if (tanggal) {
+
+          const input =
+            new Date(tanggal);
+
+          cocokTanggal =
+            tgl.getDate() ===
+              input.getDate() &&
+            tgl.getMonth() ===
+              input.getMonth() &&
+            tgl.getFullYear() ===
+              input.getFullYear();
+
         }
 
-        data.forEach((d) => {
-          const tgl = parseTanggal(d.tanggal);
-          const nilai = d.tipe === "keluar" ? -d.jumlah : d.jumlah;
+        // FILTER BULANAN
+        if (bulan) {
 
-          saldo += nilai;
+          const [year, month] =
+            bulan.split("-");
 
-          if (nilai > 0) masuk += nilai;
-          else keluar += Math.abs(nilai);
+          cocokBulan =
+            tgl.getFullYear() ==
+              year &&
+            tgl.getMonth() + 1 ==
+              month;
 
-          html += `
-      <div class="item">
-        <div>
-          <strong>${d.ket}</strong><br>
-          <small>${tgl.toLocaleDateString("id-ID")}</small>
-        </div>
-        <div class="${d.tipe === "masuk" ? "income" : "expense"}">
-          ${d.jumlah.toLocaleString("id-ID", {
-            style: "currency",
-            currency: "IDR",
-          })}
-        </div>
-      </div>
-    `;
-        });
-
-        document.getElementById("list").innerHTML = html;
-
-        // 💰 TOTAL
-        document.getElementById("totalSaldo").innerText = saldo.toLocaleString(
-          "id-ID",
-          { style: "currency", currency: "IDR" },
-        );
-
-        document.getElementById("totalMasuk").innerText = masuk.toLocaleString(
-          "id-ID",
-          { style: "currency", currency: "IDR" },
-        );
-
-        document.getElementById("totalKeluar").innerText =
-          keluar.toLocaleString("id-ID", {
-            style: "currency",
-            currency: "IDR",
-          });
-
-        // 📊 CHART
-        renderChart(masuk, keluar);
-      }
-
-      // 📊 CHART
-      function renderChart(masuk, keluar) {
-        const ctx = document.getElementById("chart");
-
-        if (chart) {
-          chart.destroy();
         }
 
-        chart = new Chart(ctx, {
-          type: "doughnut",
-          data: {
-            labels: ["Pemasukan", "Pengeluaran"],
-            datasets: [
-              {
-                data: [masuk, keluar],
-              },
-            ],
-          },
-        });
-      }
+        return cocokTanggal &&
+               cocokBulan;
 
-      // 🔍 FILTER
-      function applyFilter() {
-        const tanggal = document.getElementById("filterTanggal").value;
-        const bulan = document.getElementById("filterBulan").value;
+      });
 
-        data = semuaData.filter((d) => {
-          const tgl = parseTanggal(d.tanggal);
+      render();
 
-          let matchTanggal = true;
-          let matchBulan = true;
+    }
 
-          if (tanggal) {
-            const inputDate = new Date(tanggal);
-            matchTanggal = tgl.toDateString() === inputDate.toDateString();
-          }
+    // RESET
+    function resetFilter() {
 
-          if (bulan) {
-            const [year, month] = bulan.split("-");
-            matchBulan =
-              tgl.getFullYear() == year && tgl.getMonth() + 1 == month;
-          }
+      document.getElementById(
+        "filterTanggal"
+      ).value = "";
 
-          return matchTanggal && matchBulan;
-        });
+      document.getElementById(
+        "filterBulan"
+      ).value = "";
 
-        render();
-      }
+      data = semuaData;
 
-      // 🔄 RESET
-      function resetFilter() {
-        document.getElementById("filterTanggal").value = "";
-        document.getElementById("filterBulan").value = "";
+      render();
 
-        data = semuaData;
-        render();
-      }
+    }
 
-      window.applyFilter = applyFilter;
-      window.resetFilter = resetFilter;
+    window.applyFilter =
+      applyFilter;
 
-      loadData();
-    </script>
-  </body>
+    window.resetFilter =
+      resetFilter;
+
+    loadData();
+
+  </script>
+
+</body>
 </html>
